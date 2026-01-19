@@ -1,36 +1,50 @@
 const axios = require("axios");
 require("dotenv").config();
 
+// ✅ CENTRAL MOCK WEATHER (single source of truth)
+const MOCK_WEATHER = {
+  temperature: 26,
+  humidity: 70,
+  rainfall: 120,
+  location: "Mock-Weather"
+};
+
 exports.getWeatherData = async (lat, lon) => {
   try {
     const apiKey = process.env.WEATHER_API_KEY;
-    // We explicitly ask for metric units (Celsius, mm)
+
+    // 🔐 If API key missing → use mock
+    if (!apiKey) {
+      console.warn("⚠ WEATHER_API_KEY missing, using mock weather");
+      return MOCK_WEATHER;
+    }
+
     const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`;
-    
     const response = await axios.get(url);
+
+    // ❌ Unexpected response → fallback
+    if (!response || !response.data || !response.data.main) {
+      console.warn("⚠ Invalid weather response, using mock weather");
+      return MOCK_WEATHER;
+    }
+
     const data = response.data;
 
-    // OpenWeather returns rain volume for last 1h or 3h if available
-    // If no rain object exists, it means 0 rainfall right now
     let rainfallValue = 0;
     if (data.rain) {
-      rainfallValue = data.rain['1h'] || data.rain['3h'] || 0;
+      rainfallValue = data.rain["1h"] || data.rain["3h"] || 0;
     }
 
     return {
-      temperature: data.main.temp,     // automates 'temperature'
-      humidity: data.main.humidity,    // automates 'humidity'
-      rainfall: rainfallValue,         // automates 'rainfall'
-      location: data.name
+      temperature: data.main.temp,
+      humidity: data.main.humidity,
+      rainfall: rainfallValue,
+      location: data.name || "Unknown"
     };
+
   } catch (error) {
     console.error("Weather API Error:", error.message);
-    return null;
+    console.warn("⚠ Falling back to mock weather");
+    return MOCK_WEATHER;
   }
 };
-
-/*
-Rainfall Warning: Since OpenWeather gives current rainfall (mm/hour), it might be 0 on a sunny day. Your crop model likely expects seasonal rainfall (mm/year or mm/season).
-
-Quick Fix: In the controller logic, I allowed the API to set it. If it's 0, it might affect the prediction. You might want to discuss with your team: "Should we stick to manual rainfall input since the AI needs seasonal averages, or do we want to trust the live API?" (For now, the code above uses the API value if coordinates are sent).
-*/
