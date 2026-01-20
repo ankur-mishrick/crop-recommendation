@@ -2,8 +2,6 @@ name: MERN CI Pipeline
 
 on:
   pull_request:
-    branches:
-      - master
 
 jobs:
   build-and-test:
@@ -18,10 +16,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: npm
+          cache-dependency-path: Backend/package-lock.json
 
       - name: Install backend dependencies
         working-directory: Backend
-        run: npm install
+        run: npm ci
 
       - name: Run backend tests
         working-directory: Backend
@@ -30,7 +30,7 @@ jobs:
       # ===== Frontend =====
       - name: Install frontend dependencies
         working-directory: Frontend/crop-recomendation
-        run: npm install
+        run: npm ci
 
       # - name: Run frontend tests
       #   working-directory: Frontend/crop-recomendation
