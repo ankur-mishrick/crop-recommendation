@@ -1,6 +1,6 @@
 import { post } from "axios";
-import { getWeatherData } from "../services/weatherService";
-import { getMarketPrice } from "../services/marketService";
+import { getWeatherData } from "../services/weatherService.js";
+import { getMarketPrice } from "../services/marketService.js";
 require("dotenv").config();
 
 export async function recommendCrop(req, res) {
