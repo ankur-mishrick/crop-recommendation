@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 
 import { getWeatherData } from "../services/weatherService.js";
 import { getMarketPrice } from "../services/marketService.js";
+import Prediction from '../models/Prediction.js';
 
 dotenv.config();
 
@@ -48,6 +49,27 @@ export async function recommendCrop(req, res) {
     const { recommended_crop, top_3_crops } = mlResponse.data;
 
     const estimatedPrice = getMarketPrice(recommended_crop);
+
+    // === [NEW PART] SAVE TO DATABASE ===
+    try {
+      const newRecord = new Prediction({
+        inputs: {
+            N, P, K, ph, lat, lon,
+            temperature: finalTemperature,
+            humidity: finalHumidity,
+            rainfall: finalRainfall
+        },
+        predicted_crop: recommended_crop,
+        market_price: estimatedPrice
+      });
+
+      await newRecord.save();
+      console.log("✅ Prediction saved to history!");
+    } catch (dbError) {
+      console.error("⚠️ Failed to save history:", dbError.message);
+      // We do not stop the response if saving fails
+    }
+    // ===================================
 
     res.json({
       success: true,
